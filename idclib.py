@@ -156,6 +156,46 @@ class BipartiteGraph:
                 results.append((subset_set, exclusive_u_nodes, total_prob))
         sharp_lower_bounds = np.array([result[2] for result in results]) # np.array([result[2] for result in results if result[1]])  # Filter out empty exclusive_u_nodes
         return results, sharp_lower_bounds
+    
+    def calculate_sharp_lower_bound_new(self, Ftheta, method="cdc"):
+        """
+        Calculates sharp lower bounds.
+        
+        Parameters:
+        - Ftheta: The probability distribution or parameter vector.
+        - method: "cdc" (default) to use the smallest Core Determining Class, 
+                "full" to use the entire power set of Y_nodes.
+        """
+        # 1. Determine which subsets to process
+        if method == "cdc":
+            subsets_iterable = self.smallest_CDC()
+        elif method == "full":
+            # Generate the full power set (including the empty set)
+            subsets_iterable = (
+                subset 
+                for r in range(len(self.Y_nodes) + 1) 
+                for subset in itertools.combinations(self.Y_nodes, r)
+            )
+        else:
+            raise ValueError("Method must be either 'cdc' or 'full'")
+
+        results = []
+        
+        # 2. Perform the calculation on the chosen collection
+        for subset in subsets_iterable:
+            subset_set = set(subset)
+            exclusive_u_nodes = self.get_exclusive_u_nodes(subset_set)
+            total_prob = self.sum_probabilities(exclusive_u_nodes, Ftheta)
+            results.append((subset_set, exclusive_u_nodes, total_prob))
+        
+        # Sort by the length of subset_set (the 1st element in the tuple)
+        # We use reverse=True so the largest sets appear first; set to False for ascending.
+        results.sort(key=lambda x: len(x[0]), reverse=False)
+        
+        # 3. Extract the numeric bounds into a numpy array
+        sharp_lower_bounds = np.array([result[2] for result in results])
+        
+        return results, sharp_lower_bounds
 
     def plot_graph(self, pos=None, title=''):
         # Determine node positions if not provided
